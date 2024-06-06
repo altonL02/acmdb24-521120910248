@@ -22,21 +22,17 @@ public class BufferPool {
 
     private static int pageSize = PAGE_SIZE;
     
+    private final int numPages;
+    private final Page[] pageArray;
+    private final HashMap<PageId, Integer> pageIndexHashMap;
+    private final LinkedList<PageId> LRUList;
+    private final BitSet readyBitSet;
+    private final LockManager LOCK_MANAGER = new LockManager();
+
     /** Default number of pages passed to the constructor. This is used by
     other classes. BufferPool should use the numPages argument to the
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
-
-    /*My implementation Start*/
-    private  final int numPages;
-    private final Page[] pageArray;
-    private final HashMap<PageId, Integer> pageIndexHashMap;
-    private final LinkedList<PageId> LRUList;
-//    private final HashMap<Integer, TransactionId> lastModifyTransactionMap;
-    private final BitSet readyBitSet;
-//    private final BitSet dirtyBitSet;
-    private final LockManager LOCK_MANAGER = new LockManager();
-    /*My implementation End*/
 
     /**
      * Creates a BufferPool that caches up to numPages pages.
@@ -49,9 +45,7 @@ public class BufferPool {
         this.pageArray = new Page[numPages];
         this.pageIndexHashMap = new HashMap<PageId, Integer>();
         this.LRUList = new LinkedList<PageId>();
-//        this.lastModifyTransactionMap = new HashMap<Integer, TransactionId>();
         this.readyBitSet = new BitSet(numPages);
-//        this.dirtyBitSet = new BitSet(numPages);
     }
     
     public static int getPageSize() {
@@ -226,8 +220,6 @@ public class BufferPool {
         // Write back dirty page, this must be synchronized
         synchronized (this)
         {
-//            DbFile file = Database.getCatalog().getDatabaseFile(tableId);
-//            ArrayList<Page> dirtyPageList = file.insertTuple(tid, t);
             for (Page dirtyPage : dirtyPageList)
             {
                 PageId pid = dirtyPage.getId();
@@ -336,7 +328,6 @@ public class BufferPool {
         // not necessary for lab1
         if (pageIndexHashMap.containsKey(pid))
         {
-//            this.dirtyBitSet.set(pageIndexHashMap.get(pid), false);
             this.readyBitSet.set(pageIndexHashMap.get(pid), false);
             this.LRUList.remove(pid);
             this.pageIndexHashMap.remove(pid);
@@ -354,7 +345,6 @@ public class BufferPool {
         {
             int pageArrayIndex = pageIndexHashMap.get(pid);
             Database.getCatalog().getDatabaseFile(pid.getTableId()).writePage(pageArray[pageArrayIndex]);
-//            dirtyBitSet.set(pageArrayIndex, false);
         }
     }
 
@@ -410,7 +400,7 @@ public class BufferPool {
         this.readyBitSet.set(pageArrayId, false);
         this.pageIndexHashMap.remove(evictPid);
         this.LRUList.remove(evictPid);
-//        this.lastModifyTransactionMap.clear();
     }
 
 }
+

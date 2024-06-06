@@ -10,9 +10,9 @@ public class LockManager
     private Hashtable<TransactionId, HashSet<Lock>> tidLockTable;
     private Hashtable<PageId, Lock> pidLockTable;
 
-    public static final int BASE_TIMELIMIT = 500; // 200 ms for max waiting time base
-    public static final int VAR_TIMELIMIT = 500; // 200 ms for varies waiting time
-    public static final int WAIT_PERIOD = 50; // 50 ms per wait
+    public static final int BASE_TIMELIMIT = 500; 
+    public static final int VAR_TIMELIMIT = 500; 
+    public static final int WAIT_PERIOD = 50;
     public static final Random RANDOM_GENERATOR = new Random();
 
     public LockManager()
@@ -21,17 +21,6 @@ public class LockManager
         this.pidLockTable = new Hashtable<PageId, Lock>();
     }
 
-    /**
-     * Lock the page with pid, the type of lock is lockType, and the
-     * transaction that launch the lock is tid.
-     * <p>
-     * Throws TransactionAbortedException if failed to get the lock.
-     *<p>
-     * ThreadSafe, the method is synchronized
-     * @param tid the ID of the transaction requesting to lock the page
-     * @param pid the ID of the being locked page
-     * @param lockType the type of the lock
-     */
     public synchronized void acquireLock(TransactionId tid, PageId pid, LockType lockType)
         throws TransactionAbortedException
     {
@@ -90,7 +79,6 @@ public class LockManager
                     break;
                 else if (tmpLock.getExclusiveTidSet().isEmpty())
                 {
-                    // only one shared tid --- it's itself!
                     if (tmpLock.getSharedTidSet().contains(tid) && tmpLock.getSharedTidSet().size() == 1)
                     {
                         tmpLock.getUpgradeTagSet().add(tid);
@@ -117,13 +105,6 @@ public class LockManager
         }
     }
 
-    /**
-     * Unlock the page with pid and the transaction that launch the unlock is tid.
-     *<p>
-     * ThreadSafe, the method is synchronized
-     * @param tid the ID of the transaction requesting to unlock the page
-     * @param pid the ID of the locked page
-     */
     public synchronized void releaseLock(TransactionId tid, PageId pid)
     {
         if (this.tidLockTable.keySet().contains(tid) && pidLockTable.keySet().contains(pid))
@@ -150,42 +131,27 @@ public class LockManager
         notifyAll();
     }
 
-    /**
-     * Unlock all the pages which are locked by transaction tid.
-     *<p>
-     * ThreadSafe, the method is synchronized
-     * @param tid the ID of the transaction requesting to unlock the page
-     */
     public synchronized void releaseAllLocks(TransactionId tid)
     {
         if (this.tidLockTable.keySet().contains(tid))
         {
-            // remove exclusive locked pids
             Set<PageId> exclusiveLockedPids = this.getExclusiveLockedPids(tid);
             for (PageId pid : exclusiveLockedPids)
             {
                 this.releaseLock(tid, pid);
             }
 
-            // remove shared locked pids
             Set<PageId> sharedLockedPids = this.getSharedLockedPids(tid);
             for (PageId pid : sharedLockedPids)
             {
                 this.releaseLock(tid, pid);
             }
 
-            // remove tid index
             this.tidLockTable.remove(tid);
         }
         notifyAll();
     }
 
-    /**
-     * Get the set the id of pages which a transaction tid has locked using exclusive lock.
-     *<p>
-     * ThreadSafe, the method is synchronized
-     * @param tid the ID of the transaction
-     */
     synchronized public Set<PageId> getExclusiveLockedPids(TransactionId tid)
     {
         Set<PageId> resultSet = new HashSet<PageId>();
@@ -200,12 +166,6 @@ public class LockManager
         return resultSet;
     }
 
-    /**
-     * Get the set the id of pages which a transaction tid has locked using exclusive lock.
-     *<p>
-     * ThreadSafe, the method is synchronized
-     * @param tid the ID of the transaction
-     */
     synchronized public Set<PageId> getSharedLockedPids(TransactionId tid)
     {
         Set<PageId> resultSet = new HashSet<PageId>();
@@ -220,12 +180,6 @@ public class LockManager
         return resultSet;
     }
 
-    /**
-     * Check whether a transaction with tid holds a lock
-     *<p>
-     * ThreadSafe, the method is synchronized
-     * @param tid the ID of the transaction
-     */
     synchronized public boolean holdsLock(TransactionId tid)
     {
         return this.tidLockTable.keySet().contains(tid);
